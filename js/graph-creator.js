@@ -24,7 +24,7 @@ document.onload = (function(d3, saveAs, Blob, undefined){
       justDragged: false,
       justScaleTransGraph: false,
       lastKeyDown: -1,
-      shiftNodeDrag: false,
+      NodeDrag: false,
       selectedText: null
     };
 
@@ -91,7 +91,7 @@ document.onload = (function(d3, saveAs, Blob, undefined){
     // listen for dragging
     var dragSvg = d3.behavior.zoom()
           .on("zoom", function(){
-            if (d3.event.sourceEvent.shiftKey){
+            if (d3.event.sourceEvent.ctrlKey){
               // TODO  the internal d3 state is still changing
               return false;
             } else{
@@ -104,7 +104,7 @@ document.onload = (function(d3, saveAs, Blob, undefined){
             if (ael){
               ael.blur();
             }
-            if (!d3.event.sourceEvent.shiftKey) d3.select('body').style("cursor", "move");
+            if (!d3.event.sourceEvent.ctrlKey) d3.select('body').style("cursor", "move");
           })
           .on("zoomend", function(){
             d3.select('body').style("cursor", "auto");
@@ -122,7 +122,7 @@ document.onload = (function(d3, saveAs, Blob, undefined){
         saveEdges.push({source: val.source.id, target: val.target.id});
       });
       var blob = new Blob([window.JSON.stringify({"nodes": thisGraph.nodes, "edges": saveEdges})], {type: "text/plain;charset=utf-8"});
-      saveAs(blob, "mydag.json");
+      saveAs(blob, "graph.json");
     });
 
 
@@ -189,7 +189,7 @@ document.onload = (function(d3, saveAs, Blob, undefined){
 
   GraphCreator.prototype.dragmove = function(d) {
     var thisGraph = this;
-    if (thisGraph.state.shiftNodeDrag){
+    if (thisGraph.state.NodeDrag){
       thisGraph.dragLine.attr('d', 'M' + d.x + ',' + d.y + 'L' + d3.mouse(thisGraph.svgG.node())[0] + ',' + d3.mouse(this.svgG.node())[1]);
     } else{
       d.x += d3.event.dx;
@@ -306,8 +306,8 @@ document.onload = (function(d3, saveAs, Blob, undefined){
         state = thisGraph.state;
     d3.event.stopPropagation();
     state.mouseDownNode = d;
-    if (d3.event.shiftKey){
-      state.shiftNodeDrag = d3.event.shiftKey;
+    if (d3.event.ctrlKey){
+      state.NodeDrag = d3.event.ctrlKey;
       // reposition dragged directed edge
       thisGraph.dragLine.classed('hidden', false)
         .attr('d', 'M' + d.x + ',' + d.y + 'L' + d.x + ',' + d.y);
@@ -343,7 +343,7 @@ document.onload = (function(d3, saveAs, Blob, undefined){
           })
           .on("keydown", function(d){
             d3.event.stopPropagation();
-            if (d3.event.keyCode == consts.ENTER_KEY && !d3.event.shiftKey){
+            if (d3.event.keyCode == consts.ENTER_KEY && !d3.event.ctrlKey){
               this.blur();
             }
           })
@@ -361,7 +361,7 @@ document.onload = (function(d3, saveAs, Blob, undefined){
         state = thisGraph.state,
         consts = thisGraph.consts;
     // reset the states
-    state.shiftNodeDrag = false;
+    state.NodeDrag = false;
     d3node.classed(consts.connectClass, false);
 
     var mouseDownNode = state.mouseDownNode;
@@ -390,8 +390,8 @@ document.onload = (function(d3, saveAs, Blob, undefined){
         state.justDragged = false;
       } else{
         // clicked, not dragged
-        if (d3.event.shiftKey){
-          // shift-clicked node: edit text content
+        if (d3.event.ctrlKey){
+          // ctrl-clicked node: edit text content
           var d3txt = thisGraph.changeTextOfNode(d3node, d);
           var txtNode = d3txt.node();
           thisGraph.selectElementContents(txtNode);
@@ -415,6 +415,47 @@ document.onload = (function(d3, saveAs, Blob, undefined){
 
   }; // end of circles mouseup
 
+
+  /* place editable text on link in place of svg text */
+  GraphCreator.prototype.changeTextOfLink = function(d3link, d){
+    var thisGraph = this,
+        consts = thisGraph.consts,
+        htmlEl = d3link.node();
+    d3link.selectAll("text").remove();
+    var linkBCR = htmlEl.getBoundingClientRect(),
+        curScale = linkBCR.width/consts.linkDistance,
+        placePad  =  5*curScale,
+        useHW = curScale > 1 ? linkBCR.width*0.71 : consts.linkDistance*1.42;
+    // replace with editableconent text
+    var d3txt = thisGraph.svg.selectAll("foreignObject")
+          .data([d])
+          .enter()
+          .append("foreignObject")
+          .attr("x", linkBCR.left + placePad )
+          .attr("y", linkBCR.top + placePad)
+          .attr("height", 2*useHW)
+          .attr("width", useHW)
+          .append("xhtml:p")
+          .attr("id", consts.activeEditId)
+          .attr("contentEditable", "true")
+          .text(d.title)
+          .on("mousedown", function(d){
+            d3.event.stopPropagation();
+          })
+          .on("keydown", function(d){
+            d3.event.stopPropagation();
+            if (d3.event.keyCode == consts.ENTER_KEY && !d3.event.ctrlKey){
+              this.blur();
+            }
+          })
+          .on("blur", function(d){
+            d.title = this.textContent;
+            thisGraph.insertTitleLinebreaks(d3link, d.title);
+            d3.select(this.parentElement).remove();
+          });
+    return d3txt;
+  };
+
   // mousedown on main svg
   GraphCreator.prototype.svgMouseDown = function(){
     this.state.graphMouseDown = true;
@@ -427,7 +468,7 @@ document.onload = (function(d3, saveAs, Blob, undefined){
     if (state.justScaleTransGraph) {
       // dragged not clicked
       state.justScaleTransGraph = false;
-    } else if (state.graphMouseDown && d3.event.shiftKey){
+    } else if (state.graphMouseDown && d3.event.ctrlKey){
       // clicked not dragged from svg
       var xycoords = d3.mouse(thisGraph.svgG.node()),
           d = {id: thisGraph.idct++, title: consts.defaultTitle, x: xycoords[0], y: xycoords[1]};
@@ -440,9 +481,9 @@ document.onload = (function(d3, saveAs, Blob, undefined){
           txtNode = d3txt.node();
       thisGraph.selectElementContents(txtNode);
       txtNode.focus();
-    } else if (state.shiftNodeDrag){
+    } else if (state.NodeDrag){
       // dragged from node
-      state.shiftNodeDrag = false;
+      state.NodeDrag = false;
       thisGraph.dragLine.classed("hidden", true);
     }
     state.graphMouseDown = false;
@@ -532,7 +573,7 @@ document.onload = (function(d3, saveAs, Blob, undefined){
     newGs.classed(consts.circleGClass, true)
       .attr("transform", function(d){return "translate(" + d.x + "," + d.y + ")";})
       .on("mouseover", function(d){
-        if (state.shiftNodeDrag){
+        if (state.NodeDrag){
           d3.select(this).classed(consts.connectClass, true);
         }
       })
@@ -573,6 +614,89 @@ document.onload = (function(d3, saveAs, Blob, undefined){
   };
 
 
+// ####################### IMPORT #######################
+// Fonctionnel !
+
+  const directoryPath = 'json/'; // chemin d'accès au dossier des fichiers JSON
+
+  fetch(directoryPath)
+    .then(response => response.text())
+    .then(text => {
+      const parser = new DOMParser();
+      const html = parser.parseFromString(text, 'text/html');
+      const jsonFiles = Array.from(html.querySelectorAll('a'))
+        .filter(link => link.href.endsWith('.json'))
+        .map(link => link.textContent.split(".")[0] + ".json");
+        // .map Résoud le bug qui récupérait la date après ".json", là ne récupère que le nom du fichier et rajoute manuellement .json
+  
+  
+      if (jsonFiles.length === 0) {
+        console.log('Aucun fichier JSON trouvé dans le dossier !');
+        return;
+      }
+  
+      console.log('Fichiers JSON trouvés : ', jsonFiles);
+  
+      // Création de la liste déroulante avec les fichiers JSON trouvés
+      const select = document.createElement('select');
+      select.id = 'json-files';
+  
+      jsonFiles.forEach(file => {
+        const filename = file.split(".")[0]; // sépare le nom de fichier de l'extension
+        const option = document.createElement('option');
+        option.value = file;
+        option.textContent = filename; // utilise le nom de fichier sans la date de création
+        select.appendChild(option);
+      });
+  
+      var searchDiv = document.getElementById("search");
+      searchDiv.appendChild(select);
+  
+      // Création du bouton "Importer"
+      const importButton = document.createElement('button');
+      importButton.textContent = 'Importer';
+      importButton.addEventListener('click', () => {
+        const selectedFile = select.options[select.selectedIndex].value;
+        fetch(directoryPath + selectedFile)
+          .then(response => response.json())
+          .then(jsonObj => {
+            // Appeler la fonction handleUploadedData avec le contenu du fichier JSON
+            handleUploadedData(jsonObj);
+            console.log(jsonObj);
+          })
+          .catch(error => console.error('Erreur lors du chargement du fichier JSON : ', error));
+      });
+  
+      var searchDiv = document.getElementById("search");
+      searchDiv.appendChild(importButton);
+    })
+    .catch(error => console.error('Erreur lors de la récupération de la liste des fichiers JSON : ', error));
+  
+  function handleUploadedData(jsonObj) {
+    // Supprimer tout graphe existant
+    graph.deleteGraph(true);
+    
+    // Ajouter les nœuds et les identifiants
+    graph.nodes = jsonObj.nodes;
+    graph.setIdCt(jsonObj.nodes.length + 1);
+    
+    // Ajouter les arêtes
+    const newEdges = jsonObj.edges;
+    newEdges.forEach(function(e, i){
+      newEdges[i] = {
+        source: graph.nodes.filter(function(n){return n.id == e.source;})[0],
+        target: graph.nodes.filter(function(n){return n.id == e.target;})[0]
+      };
+    });
+    graph.edges = newEdges;
+    
+    // Mettre à jour le graphe
+    graph.updateGraph();
+  }
+  
+// ####################### IMPORT - END #######################
+
+// ####################### INIT and MAIN #######################
 
   /**** MAIN ****/
 
@@ -590,6 +714,7 @@ document.onload = (function(d3, saveAs, Blob, undefined){
   var xLoc = width/2 - 25,
       yLoc = 100;
 
+      
   // initial node data
   var nodes = [];
   var edges = [];
@@ -603,3 +728,5 @@ document.onload = (function(d3, saveAs, Blob, undefined){
       graph.setIdCt(2);
   graph.updateGraph();
 })(window.d3, window.saveAs, window.Blob);
+
+
