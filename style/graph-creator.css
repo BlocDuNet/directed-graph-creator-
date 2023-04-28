@@ -143,3 +143,58 @@ path.link.selected {
     /* text-align: center; */
   }
 /* END tooltip */ 
+
+/* Volet config https://codepen.io/bazooka07/pen/rqEoee */ 
+* { margin:0; padding: 0; box-sizing: border-box; }
+#volet_clos {
+	position: fixed;
+	top: 0;
+	/* auto-centreur horizontal */
+	--width0 : 22rem; /* demi-largeur */
+	left: calc(50vw - var(--width0));
+	right: calc(50vw - var(--width0));
+}
+#volet {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    width: 100%;
+    padding: 0.5rem;
+    background: #f2f2f2;
+    color: #333;
+    text-align: center;
+	-webkit-transition: transform .5s ease-in;
+	-moz-transition: transform .5s ease-in;
+	transition: transform .5s ease-in;
+}
+
+#volet_clos .onglets {
+	--width1: 8rem; /* demi-largeur */
+	position: absolute;
+	top: 100%;
+	left: calc(50% - var(--width1));
+	right: calc(50% - var(--width1));
+	padding: 0.3rem 0;
+	background: #0000008a;
+	border-radius: 0 0 25px 25px;
+}
+
+#volet_clos a.ouvrir,
+#volet_clos a.fermer {
+	text-decoration: none;
+    color: #efefef;
+}
+#volet_clos a.fermer { display: none; }
+
+/* ouverture */
+#volet:target { transform: translateY(100%); }
+#volet:target a[href="#volet"] { display: none; }
+#volet:target a[href="#volet_clos"] { display: initial; }
+
+/* Volet config https://codepen.io/bazooka07/pen/rqEoee */
+
+
+#json-files {
+    margin: 10px;
+}
+
