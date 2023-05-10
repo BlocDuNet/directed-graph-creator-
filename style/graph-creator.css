@@ -169,7 +169,7 @@ path.link.selected {
 }
 
 #volet_clos .onglets {
-	--width1: 8rem; /* demi-largeur */
+	--width1: 3rem; /* demi-largeur */
 	position: absolute;
 	top: 100%;
 	left: calc(50% - var(--width1));

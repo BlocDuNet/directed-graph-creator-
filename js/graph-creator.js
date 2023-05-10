@@ -695,6 +695,29 @@ document.onload = (function(d3, saveAs, Blob, undefined){
   }
   
 // ####################### IMPORT - END #######################
+// ####################### Search node #######################
+// Non fonctionnel
+// Définir la fonction de recherche de nœuds
+function searchNodes() {
+  // Récupérer la chaîne de recherche depuis l'élément input
+  var searchString = document.getElementById('search-node').value;
+  
+  // Itérer sur tous les nœuds du graphe
+  for (var i = 0; i < nodes.length; i++) {
+    // Vérifier si le nom du nœud correspond à la chaîne de recherche
+    if (nodes[i].name.toLowerCase().indexOf(searchString.toLowerCase()) > -1) {
+      // Si oui, mettre en évidence le nœud correspondant en modifiant sa couleur de fond
+      d3.select('#node-' + nodes[i].id).style('fill', 'yellow');
+    } else {
+      // Sinon, réinitialiser la couleur de fond du nœud
+      d3.select('#node-' + nodes[i].id).style('fill', null);
+    }
+  }
+}
+// Ajouter un écouteur d'événement sur l'élément input pour déclencher la recherche
+document.getElementById('search-node').addEventListener('input', searchNodes);
+
+// ####################### Search End ####################### 
 
 // ####################### INIT and MAIN #######################
 
