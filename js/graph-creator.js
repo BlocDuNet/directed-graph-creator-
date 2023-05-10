@@ -374,9 +374,11 @@ document.onload = (function(d3, saveAs, Blob, undefined){
       // we're in a different node: create new edge for mousedown edge and add to graph
       var newEdge = {source: mouseDownNode, target: d};
       var filtRes = thisGraph.paths.filter(function(d){
+        /* Commented for disable unidirectional link
         if (d.source === newEdge.target && d.target === newEdge.source){
           thisGraph.edges.splice(thisGraph.edges.indexOf(d), 1);
         }
+        */
         return d.source === newEdge.source && d.target === newEdge.target;
       });
       if (!filtRes[0].length){
@@ -696,7 +698,9 @@ document.onload = (function(d3, saveAs, Blob, undefined){
   
 // ####################### IMPORT - END #######################
 // ####################### Search node #######################
-// Non fonctionnel
+// Non fonctionnel, à refaire plus tard quand il y aura la possibilité de sélectionner plusieurs noeuds en même temps. La recherche devra ainsi sélectionné chaque noeud qui correspondent à la recherche
+// OU alors, le champs de recherche affiche les résultats des noeuds correspondant au champ de recherche, dnas une liste déroulante en dessous
+
 // Définir la fonction de recherche de nœuds
 function searchNodes() {
   // Récupérer la chaîne de recherche depuis l'élément input
